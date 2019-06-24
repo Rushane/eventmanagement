@@ -8,8 +8,8 @@ This file creates your application.
 from app import app, db, login_manager
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, current_user, login_required
-from app.forms import LoginForm
-from app.models import UserProfile
+from app.forms import LoginForm, RegistrationForm
+from app.models import EventManager
 
 
 ###
@@ -50,6 +50,29 @@ def login():
             return redirect(url_for("home"))  # they should be redirected to a secure-page route instead
     return render_template("login.html", form=form)
 
+@app.route("/api/users/register",  methods=["GET","POST"]) # added GET for testing purposes
+def register():
+    form = RegistrationForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        username = form.username.data
+        password = form.password.data
+        firstname = form.first_name.data
+        lastname = form.last_name.data
+        telnum = form.telnum.data
+        email = form.email.data
+            
+        #date_created = datetime.datetime.now().strftime("%B %d, %Y")
+        
+        new_user = EventManager(username=username,password=password,first_name=firstname, last_name=lastname, 
+                             telnum=telnum, email=email)
+            
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('User added', 'success')
+        return redirect(url_for("home")) # Where should it go after the user is created ?
+    return render_template('register.html', form=form)
+
 
 # user_loader callback. This callback is used to reload the user object from
 # the user ID stored in the session
@@ -87,4 +110,4 @@ def page_not_found(error):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host="0.0.0.0", port="8080")
+    app.run(debug=True)
