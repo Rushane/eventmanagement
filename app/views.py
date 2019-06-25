@@ -8,8 +8,8 @@ This file creates your application.
 from app import app, db, login_manager
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, current_user, login_required
-from app.forms import LoginForm, RegistrationForm
-from app.models import EventManager
+from app.forms import LoginForm, RegistrationForm, EventForm
+from app.models import EventManager, Event
 
 
 ###
@@ -72,6 +72,31 @@ def register():
         flash('User added', 'success')
         return redirect(url_for("home")) # Where should it go after the user is created ?
     return render_template('register.html', form=form)
+
+@app.route("/api/events/createEvent",  methods=["GET","POST"]) # added GET for testing purposes
+def createNewEvent():
+    form = EventForm()
+    if request.method == 'POST' and form.validate_on_submit():
+        name = form.name.data
+        title = form.title.data
+        category = form.category.data
+        start_date = form.start_date.data
+        end_date = form.end_date.data
+        description= form.description.data 
+        cost = form.cost.data
+        venue = form.venue.data
+        flyer = form.flyer.data
+            
+        #date_created = datetime.datetime.now().strftime("%B %d, %Y")
+        
+        new_user = Event(name=name,title=title,category=category, start_date=start_date, end_date=end_date,
+                             description=description, cost=cost, venue=venue, flyer=flyer)
+        db.session.add(new_user)
+        db.session.commit()
+        
+        flash('Event added', 'success')
+        return redirect(url_for("home")) # Where should it go after the user is created ?
+    return render_template('newevent.html', form=form)
 
 
 # user_loader callback. This callback is used to reload the user object from
