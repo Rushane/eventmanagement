@@ -98,6 +98,37 @@ def createNewEvent():
         return redirect(url_for("home")) # Where should it go after the user is created ?
     return render_template('newevent.html', form=form)
 
+@app.route('/api/events/<eventid>/viewEventInfo', methods=['GET'])
+def viewEventInfo(eventid):
+    """Render details of particular event."""
+    result =Event.query.filter_by(eventid=eventid).first()
+    
+    return render_template('viewEvent.html', result=result) 
+    
+@app.route("/api/events/<eventid>/update", methods=['GET', 'POST'])
+def updateEventInfo(eventid): 
+    record = Event.query.filter_by(eventid=eventid).first()
+    form = EventForm(request.form, obj=record)
+    
+    if request.method == "POST" and form.validate_on_submit():
+        form.populate_obj(record)
+            
+        db.session.commit()
+        flash('Event {} Updated!'.format(record.eventid), 'success')
+        return redirect(url_for("home"))
+    
+    flash_errors(form)
+    return render_template('updateEvent.html', form=form, record=record)
+
+@app.route('/api/events/<eventid>/delete', methods=['GET'])
+def deleteEvent(eventid):
+    """ deletes event """
+    eventrecord =  Event.query.filter_by(eventid=eventid).first()
+    db.session.delete(eventrecord)
+    db.session.commit()
+    flash('You have successfully deleted the event', 'success')
+    
+    return redirect(url_for('home'))
 
 # user_loader callback. This callback is used to reload the user object from
 # the user ID stored in the session
@@ -108,6 +139,14 @@ def load_user(id):
 ###
 # The functions below should be applicable to all Flask apps.
 ###
+
+# Here we define a function to collect form errors from Flask-WTF
+# which we can later use
+def flash_errors(form):
+    for field, errors in form.errors.items():
+        for error in errors:
+            flash(u"Error in the %s field - %s" % (
+                getattr(form, field).label.text,error), 'danger')
 
 
 @app.route('/<file_name>.txt')

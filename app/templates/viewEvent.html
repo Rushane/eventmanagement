@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block main %}
+
+{% include 'flash_messages.html' %}
+<div class="view_btn" align="right">
+    <form>
+       <input title="Update a current event with additional information" id ="view_button" class='btn btn-primary' type="button" value="Update Event" onclick="window.location.href='/api/events/{{ result.eventid }}/update'" />
+        <a href="/api/events/{{ result.eventid }}/delete"><input title="Removes event from system" id="view_btn" class='btn btn-primary' type="button" value="Delete Event" 
+                onclick="if(confirm('Are you sure to want to delete this event?')){return true;}else{event.stopPropagation(); event.preventDefault();};" /></a> 
+      </form> 
+</div>
+
+<div class="form-group form-control">
+    <ul>
+            <p>Event Name: {{ result.name  }} </p> 
+        
+            <p>Title of Event: {{ result.title }}</p> 
+        
+            <p> Category: {{ result.category }}</p> 
+            
+            <p> Start Date: {{ result.start_date }}</p>
+            
+            <p> End Date: {{ result.end_date}}</p>
+
+            <p>Description: {{ result.description }}</p> 
+        
+            <p> Cost: ${{ result.cost }}</p> 
+            
+            <p> Venue: {{ result.venue }}</p>
+            
+            <p> Flyer: {{ result.flyer}}</p>
+    </ul>
+</div>
+
+
+
+<div class="spacebar"></div>
+{% endblock %}
