@@ -13,10 +13,31 @@ from app.models import EventManager, Event
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import request, jsonify, make_response
+import uuid
+import jwt
+import datetime
+from functools import wraps
+###
+## Routing for your application.
+###
 
-###
-# Routing for your application.
-###
+# authenticated user by give them a token
+def token_required(f):
+    @wraps(f)
+    def decorated(*args,**kwargs):
+        token=None
+        if 'x-access-token' in request.headers:
+            token=request.headers['x-access-token']
+        if not token:
+            return jsonify({'message':'Token is not present!'})
+        try:
+            data =jwt.decode(token,app.config['SECRET_KEY'])
+            current_user=EventManager.query.filter_by(manager_publicId=data['manager_publicId']).first()
+        except Exception as e:
+            return jsonify({'message':'Not a valid token!'}),401
+        return f(current_user,*args,**kwargs)
+    return decorated
+
 
 @app.route('/')
 def home():
@@ -24,7 +45,7 @@ def home():
     return render_template('home.html')
 
 
-@app.route('/about/')
+@app.route('/about')
 def about():
     """Render the website's about page."""
     return render_template('about.html')
@@ -32,41 +53,34 @@ def about():
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
-    form = LoginForm()
-    if request.method == "POST":
-        # change this to actually validate the entire form submission
-        # and not just one field
-        if form.username.data:
-            # Get the username and password values from the form.
+    auth = request.authorization
+    if not auth or not auth.username or not auth.password:
+        return make_response("Authentication not verified",401,{"WWW-Authenticate":'Basic realm="Login Requried!"'})
+    user = EventManager.query.filter_by(name=auth.username).first()
+    if not user:
+        return make_response("Authentication not verified",401,{"WWW-Authenticate":'Basic realm="Login Requried!"'})
+    if check_password_hash(user.password,auth.password):
+        token = jwt.encode({'public_id':user.public_id,'exp':datetime.datetime.utcnow()+datetime.timedelta(minutes=30)},app.config["SECRET_KEY"])
+        return jsonify({'token':token.decode('UTF-8')})
+    return make_response("Authentication not verified",401,{"WWW-Authenticate":'Basic realm="Login Requried!"'})
+    pass
 
-            # using your model, query database for a user based on the username
-            # and password submitted. Remember you need to compare the password hash.
-            # You will need to import the appropriate function to do so.
-            # Then store the result of that query to a `user` variable so it can be
-            # passed to the login_user() method below.
-
-            # get user id, load into session
-            login_user(user)
-
-            # remember to flash a message to the user
-            return redirect(url_for("home"))  # they should be redirected to a secure-page route instead
-    return render_template("login.html", form=form)
-
-@app.route("/api/users/register",  methods=["POST"]) 
+@app.route("/api/users/register",  methods=["POST"])
 def register():
     data = request.get_json()
     pword_hashed = generate_password_hash(data['password'],method='sha256')
-    new_user = EventManager(first_name=data['first_name'], last_name=data['last_name'], email=data['email'], 
+    new_user = EventManager(public_id=data['public_id']first_name=data['first_name'], last_name=data['last_name'], email=data['email'],
     telnum=data['telnum'] ,username=data['username'], password=pword_hashed, admin=False)
-        
+
     db.session.add(new_user)
     db.session.commit()
 
     return jsonify({'message': 'The Event Manager user was created'})
 
 # how to post image in postman: https://stackoverflow.com/questions/39660074/post-image-data-using-postman
-@app.route("/api/events/createEvent",  methods=["POST"]) 
-def createNewEvent():        
+@app.route("/api/events/createEvent",  methods=["POST"])
+#@token_required
+def createNewEvent():
     #date_created = datetime.datetime.now().strftime("%B %d, %Y")
     data = request.get_json()
     print(data)
@@ -82,17 +96,18 @@ def createNewEvent():
     # The picture thingy with Flyer not working
     db.session.add(new_event)
     db.session.commit()
-    
+
     return jsonify({'message': 'Event was created'})
 
 # Should but not tested
 @app.route('/api/events/<eventID>/public', methods=['PUT'])
+#@token_required
 def makeEventPublic(eventid):
     record = Event.query.filter_by(eventid=eventid).first()
     
     record.public = True
     db.session.commit()
-    
+
     return jsonify({'message':'Event was made public'})
 
 @app.route('/api/events/<eventid>/viewEventInfo', methods=['GET'])
@@ -138,21 +153,8 @@ def updateEventInfo(eventid):
     db.session.commit()
     return jsonify({'message':'Event data was changed'})
     
-
-# endpoint to update user
-@app.route("/user/<id>", methods=["PUT"])
-def user_update(id):
-    user = User.query.get(id)
-    username = request.json['username']
-    email = request.json['email']
-
-    user.email = email
-    user.username = username
-
-    db.session.commit()
-    return user_schema.jsonify(user)
-
 @app.route('/api/events/<eventid>/delete', methods=['DELETE'])
+#@token_required
 def deleteEvent(eventid):
     """ deletes event """
     eventrecord =  Event.query.filter_by(eventid=eventid).first()
@@ -160,14 +162,49 @@ def deleteEvent(eventid):
         return jsonify({'message':'This event does not exist!'})
     db.session.delete(eventrecord)
     db.session.commit()
-    
+
     return jsonify({'message':'Event was deleted'})
 
 # endpoint to get user detail by id
 @app.route("/api/events/search", methods=["GET"])
 def searchForEvent(id):
     user = User.query.get(id)
-    return user_schema.jsonify(user
+    return user_schema.jsonify(user)
+
+@app.route("/api/events/<eventid>/comment",methods="POST")
+def commentOnEvent(eventid):
+    """ comment on  events"""
+    data = request.get_json()
+    eventrecord =  Event.query.filter_by(eventid=eventid).first()
+    if not eventrecord:
+        return jsonify({'message':'This event does not exist!'})
+    else:
+        comment= Comment(comment_publicId=str(uuid.uuid4()),eventid=eventid,guestid=data['guestid'],comment=data['comment'])
+        db.session.add(comment)
+        db.session.commit()
+        return jsonify({'message': 'comment was added to Event'})
+
+@app.route("/api/events/<eventid>/rate",methods="POST")
+def rateEvent(eventid):
+    """ rating an events"""
+    eventrecord =  Event.query.filter_by(eventid=eventid).first()
+    if not eventrecord:
+        return jsonify({'message':'This event does not exist!'})
+    else:
+        raterecord = Rating.query.filter_by(eventid=eventid).first()
+        rate=""
+        if raterecord != None:
+            oldrate=raterecord.rate_value
+            rate= Rating(rating_publicId=data["rating_publicId"], eventid=eventid, rate_value= (old+data['rate_value'])/2)
+        else:
+            rate= Rating(rating_publicId=data["rating_publicId"], eventid=eventid, rate_value= data['rate_value'])
+        db.session.add(rate)
+        db.session.commit()
+        return jsonify({'message': 'rating was added to Event'})
+
+
+
+
 
 # user_loader callback. This callback is used to reload the user object from
 # the user ID stored in the session
