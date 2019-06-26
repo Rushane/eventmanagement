@@ -17,7 +17,7 @@ import jwt
 import datetime
 from functools import wraps
 ###
-# Routing for your application.
+## Routing for your application.
 ###
 
 # authenticated user by give them a token
@@ -142,7 +142,15 @@ def commentOnEvent(eventid):
     eventrecord =  Event.query.filter_by(eventid=eventid).first()
     if not eventrecord:
         return jsonify({'message':'This event does not exist!'})
-    pass 
+    else:
+        comment= Comment(comment_publicId=eventrecord['comment_publicId'],eventid=eventid,guestid=eventrecord['guestid'],comment=eventrecord['comment'])
+        db.session.add(comment)
+        db.session.commit()
+        return jsonify({'message': 'comment added to Event'})
+
+#@app.route("")
+
+
 
 
 
