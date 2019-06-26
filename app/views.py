@@ -10,7 +10,8 @@ from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, current_user, login_required
 from app.forms import LoginForm, RegistrationForm, EventForm
 from app.models import EventManager, Event
-
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask import request, jsonify, make_response
 
 ###
 # Routing for your application.
@@ -50,58 +51,45 @@ def login():
             return redirect(url_for("home"))  # they should be redirected to a secure-page route instead
     return render_template("login.html", form=form)
 
-@app.route("/api/users/register",  methods=["GET","POST"]) # added GET for testing purposes
+@app.route("/api/users/register",  methods=["POST"]) 
 def register():
-    form = RegistrationForm()
-    if request.method == 'POST' and form.validate_on_submit():
-        username = form.username.data
-        password = form.password.data
-        firstname = form.first_name.data
-        lastname = form.last_name.data
-        telnum = form.telnum.data
-        email = form.email.data
-            
-        #date_created = datetime.datetime.now().strftime("%B %d, %Y")
+    data = request.get_json()
+    pword_hashed = generate_password_hash(data['password'],method='sha256')
+    new_user = EventManager(first_name=data['first_name'], last_name=data['last_name'], email=data['email'], 
+    telnum=data['telnum'] ,username=data['username'], password=pword_hashed, admin=False)
         
-        new_user = EventManager(username=username,password=password,first_name=firstname, last_name=lastname, 
-                             telnum=telnum, email=email)
-            
-        db.session.add(new_user)
-        db.session.commit()
-        
-        flash('User added', 'success')
-        return redirect(url_for("home")) # Where should it go after the user is created ?
-    return render_template('register.html', form=form)
+    db.session.add(new_user)
+    db.session.commit()
 
-@app.route("/api/events/createEvent",  methods=["GET","POST"]) # added GET for testing purposes
-def createNewEvent():
-    form = EventForm()
-    if request.method == 'POST' and form.validate_on_submit():
-        name = form.name.data
-        title = form.title.data
-        category = form.category.data
-        start_date = form.start_date.data
-        end_date = form.end_date.data
-        description= form.description.data 
-        cost = form.cost.data
-        venue = form.venue.data
-        flyer = form.flyer.data
-            
-        #date_created = datetime.datetime.now().strftime("%B %d, %Y")
-        
-        new_user = Event(name=name,title=title,category=category, start_date=start_date, end_date=end_date,
-                             description=description, cost=cost, venue=venue, flyer=flyer)
-        db.session.add(new_user)
-        db.session.commit()
-        
-        flash('Event added', 'success')
-        return redirect(url_for("home")) # Where should it go after the user is created ?
-    return render_template('newevent.html', form=form)
+    return jsonify({'message': 'The Event Manager user was created'})
+
+# how to post image in postman: https://stackoverflow.com/questions/39660074/post-image-data-using-postman
+@app.route("/api/events/createEvent",  methods=["POST"]) 
+def createNewEvent():        
+    #date_created = datetime.datetime.now().strftime("%B %d, %Y")
+    data = request.get_json()
+    new_event = Event(name=data['name'], title=data['title'], category=data['category'], start_date=data['start_date'] ,
+    end_date=data['end_date'] ,description=data['description'], cost=data['cost'],venue=data['venue'], flyer=data['flyer'])
+    # The picture thingy with Flyer not working
+    db.session.add(new_event)
+    db.session.commit()
+    
+    return jsonify({'message': 'Event was created'})
+
+# Should but not tested
+@app.route('/api/events/<eventID>/public', methods=['PUT'])
+def makeEventPublic(eventid):
+    record = Event.query.filter_by(eventid=eventid).first()
+    
+    record.eventstatus = "Public"
+    db.session.commit()
+    
+    return jsonify({'message':'Event was made public'})
 
 @app.route('/api/events/<eventid>/viewEventInfo', methods=['GET'])
 def viewEventInfo(eventid):
     """Render details of particular event."""
-    result =Event.query.filter_by(eventid=eventid).first()
+    result=Event.query.filter_by(eventid=eventid).first()
     
     return render_template('viewEvent.html', result=result) 
     
@@ -120,15 +108,16 @@ def updateEventInfo(eventid):
     flash_errors(form)
     return render_template('updateEvent.html', form=form, record=record)
 
-@app.route('/api/events/<eventid>/delete', methods=['GET'])
+@app.route('/api/events/<eventid>/delete', methods=['DELETE'])
 def deleteEvent(eventid):
     """ deletes event """
     eventrecord =  Event.query.filter_by(eventid=eventid).first()
+    if not eventrecord:
+        return jsonify({'message':'This event does not exist!'})
     db.session.delete(eventrecord)
     db.session.commit()
-    flash('You have successfully deleted the event', 'success')
     
-    return redirect(url_for('home'))
+    return jsonify({'message':'Event was deleted'})
 
 # user_loader callback. This callback is used to reload the user object from
 # the user ID stored in the session

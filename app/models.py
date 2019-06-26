@@ -15,14 +15,15 @@ class EventManager(db.Model):
     telnum = db.Column(db.String(180))
     username = db.Column(db.String(80), unique=True)
     password = db.Column(db.String(255))
+    admin = db.Column(db.Boolean)
     
-    def __init__(self, first_name, last_name, email, telnum, username, password):
-        self.first_name = first_name
-        self.last_name = last_name
-        self.email = email
-        self.telnum = telnum
-        self.username = username
-        self.password = generate_password_hash(password, method='pbkdf2:sha256')
+    # def __init__(self, first_name, last_name, email, telnum, username, password):
+    #     self.first_name = first_name
+    #     self.last_name = last_name
+    #     self.email = email
+    #     self.telnum = telnum
+    #     self.username = username
+    #     self.password = generate_password_hash(password, method='pbkdf2:sha256')
         
     def is_authenticated(self):
         return True
@@ -71,3 +72,8 @@ class Guest(db.Model):
 	guestid = db.Column(db.Integer,primary_key=True)
 	displayname= db.Column(db.String(50))
 	email = db.Column(db.String(180))
+
+# class Assigns(db.Model):
+#     rateid = db.Column(db.Integer,db.ForeignKey ('rating.rateid'))
+#     userid = db.Column(db.Integer,db.ForeignKey ('eventmanager.userid'))
+#     userid = db.Column(db.Integer,db.ForeignKey ('eventmanager.userid'))
