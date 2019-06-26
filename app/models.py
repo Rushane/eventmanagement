@@ -9,6 +9,7 @@ class EventManager(db.Model):
     __tablename__ = 'event_manager'
 
     userid = db.Column(db.Integer, primary_key=True)
+    #public_id= db.Column( db.String(50), unique= True)
     first_name = db.Column(db.String(80))
     last_name = db.Column(db.String(80))
     email = db.Column(db.String(180))
@@ -16,7 +17,7 @@ class EventManager(db.Model):
     username = db.Column(db.String(80), unique=True)
     password = db.Column(db.String(255))
     admin = db.Column(db.Boolean)
-    
+
     # def __init__(self, first_name, last_name, email, telnum, username, password):
     #     self.first_name = first_name
     #     self.last_name = last_name
@@ -24,7 +25,7 @@ class EventManager(db.Model):
     #     self.telnum = telnum
     #     self.username = username
     #     self.password = generate_password_hash(password, method='pbkdf2:sha256')
-        
+
     def is_authenticated(self):
         return True
 
@@ -51,7 +52,7 @@ class Event(db.Model):
 	category = db.Column(db.String(50))
 	start_date = db.Column(db.DateTime, nullable= False)
 	end_date = db.Column(db.DateTime, nullable= False)
-	description= db.Column(db.String(1000), nullable= False) 
+	description= db.Column(db.String(1000), nullable= False)
 	cost = db.Column(db.Float(10))
 	venue = db.Column(db.String(50))
 	flyer = db.Column(db.Text)
