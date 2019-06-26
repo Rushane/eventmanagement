@@ -31,7 +31,7 @@ def token_required(f):
             return jsonify({'message':'Token is not present!'})
         try:
             data =jwt.decode(token,app.config['SECRET_KEY'])
-            current_user=EventManager.query.filter_by(public_id=data['public_id']).first()
+            current_user=EventManager.query.filter_by(manager_publicId=data['manager_publicId']).first()
         except Exception as e:
             return jsonify({'message':'Not a valid token!'}),401
         return f(current_user,*args,**kwargs)
@@ -68,7 +68,7 @@ def login():
 def register():
     data = request.get_json()
     pword_hashed = generate_password_hash(data['password'],method='sha256')
-    new_user = EventManager(first_name=data['first_name'], last_name=data['last_name'], email=data['email'],
+    new_user = EventManager(public_id=data['public_id']first_name=data['first_name'], last_name=data['last_name'], email=data['email'],
     telnum=data['telnum'] ,username=data['username'], password=pword_hashed, admin=False)
 
     db.session.add(new_user)
@@ -78,6 +78,7 @@ def register():
 
 # how to post image in postman: https://stackoverflow.com/questions/39660074/post-image-data-using-postman
 @app.route("/api/events/createEvent",  methods=["POST"])
+#@token_required
 def createNewEvent():
     #date_created = datetime.datetime.now().strftime("%B %d, %Y")
     data = request.get_json()
@@ -91,6 +92,7 @@ def createNewEvent():
 
 # Should but not tested
 @app.route('/api/events/<eventID>/public', methods=['PUT'])
+#@token_required
 def makeEventPublic(eventid):
     record = Event.query.filter_by(eventid=eventid).first()
 
@@ -107,6 +109,7 @@ def viewEventInfo(eventid):
     return render_template('viewEvent.html', result=result)
 
 @app.route("/api/events/<eventid>/update", methods=['GET', 'POST'])
+#@token_required
 def updateEventInfo(eventid):
     record = Event.query.filter_by(eventid=eventid).first()
     form = EventForm(request.form, obj=record)
@@ -122,6 +125,7 @@ def updateEventInfo(eventid):
     return render_template('updateEvent.html', form=form, record=record)
 
 @app.route('/api/events/<eventid>/delete', methods=['DELETE'])
+#@token_required
 def deleteEvent(eventid):
     """ deletes event """
     eventrecord =  Event.query.filter_by(eventid=eventid).first()
@@ -131,6 +135,17 @@ def deleteEvent(eventid):
     db.session.commit()
 
     return jsonify({'message':'Event was deleted'})
+
+@app.route("/api/events/<eventid>/comment",methods="POST")
+def commentOnEvent(eventid):
+    """ comment on  events"""
+    eventrecord =  Event.query.filter_by(eventid=eventid).first()
+    if not eventrecord:
+        return jsonify({'message':'This event does not exist!'})
+    pass 
+
+
+
 
 # user_loader callback. This callback is used to reload the user object from
 # the user ID stored in the session
