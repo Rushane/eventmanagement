@@ -12,6 +12,7 @@ app.config['MYSQL_DATABASE_USER'] = 'root'
 app.config['MYSQL_DATABASE_PASSWORD'] = ''
 app.config['MYSQL_DATABASE_DB'] = 'event_management'
 app.config['MYSQL_DATABASE_HOST'] = 'localhost'
+app.config['UPLOAD_FOLDER'] = "./app/static/images"
 #mysql.init_app(app)
 #mysql = MySQL()
 db = SQLAlchemy(app)

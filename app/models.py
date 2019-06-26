@@ -55,18 +55,20 @@ class Event(db.Model):
 	cost = db.Column(db.Float(10))
 	venue = db.Column(db.String(50))
 	flyer = db.Column(db.Text)
-	creator = db.Column(db.Integer,db.ForeignKey ('event_manager.userid'))
+	#creator = db.Column(db.Integer,db.ForeignKey ('event_manager.userid'))
 
 class Comment(db.Model):
-	commentid = db.Column(db.Integer,primary_key=True)
-	title = db.Column(db.String(50))
-	comment = db.Column(db.String(50))
-	eventid = db.Column(db.Integer,db.ForeignKey ('event.eventid'))
+    commentid = db.Column(db.Integer,primary_key=True)
+    title = db.Column(db.String(50))
+    comment = db.Column(db.String(50))
+    guestid = db.Column(db.Integer,db.ForeignKey ('guest.guestid'))
+    eventid = db.Column(db.Integer,db.ForeignKey ('event.eventid'))
 
 class Rating(db.Model):
-	rateid = db.Column(db.Integer,primary_key=True)
-	rate_value = db.Column(db.String(50))
-	eventid = db.Column(db.Integer,db.ForeignKey ('event.eventid'))
+    rateid = db.Column(db.Integer,primary_key=True)
+    rate_value = db.Column(db.String(50))
+    eventid = db.Column(db.Integer,db.ForeignKey ('event.eventid'))
+    guestid = db.Column(db.Integer,db.ForeignKey ('guest.guestid'))
 
 class Guest(db.Model):
 	guestid = db.Column(db.Integer,primary_key=True)

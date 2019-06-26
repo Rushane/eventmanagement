@@ -4,12 +4,13 @@ Jinja2 Documentation:    http://jinja.pocoo.org/2/documentation/
 Werkzeug Documentation:  http://werkzeug.pocoo.org/documentation/
 This file creates your application.
 """
-
+import os
 from app import app, db, login_manager
 from flask import render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, current_user, login_required
 from app.forms import LoginForm, RegistrationForm, EventForm
 from app.models import EventManager, Event
+from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
 from flask import request, jsonify, make_response
 
@@ -68,8 +69,16 @@ def register():
 def createNewEvent():        
     #date_created = datetime.datetime.now().strftime("%B %d, %Y")
     data = request.get_json()
+    print(data)
+    imagefile = request.files.get('imagefile', '')
+    print(imagefile)
+    #imagefile.save('C:/Users/Real/Desktop/ems-starter/app/static/images')
+    #filename = secure_filename(imagefile.filename)
+    #imagefile.save(os.path.join("./app",app.config['UPLOAD_FOLDER'], filename))
+    #imagefile.save('C:\Users\Real\Desktop\ems-starter\app\static\' + imagefile)
+
     new_event = Event(name=data['name'], title=data['title'], category=data['category'], start_date=data['start_date'] ,
-    end_date=data['end_date'] ,description=data['description'], cost=data['cost'],venue=data['venue'], flyer=data['flyer'])
+    end_date=data['end_date'] ,description=data['description'], cost=data['cost'],venue=data['venue'], flyer=imagefile)
     # The picture thingy with Flyer not working
     db.session.add(new_event)
     db.session.commit()
@@ -81,32 +90,67 @@ def createNewEvent():
 def makeEventPublic(eventid):
     record = Event.query.filter_by(eventid=eventid).first()
     
-    record.eventstatus = "Public"
+    record.public = True
     db.session.commit()
     
     return jsonify({'message':'Event was made public'})
 
 @app.route('/api/events/<eventid>/viewEventInfo', methods=['GET'])
 def viewEventInfo(eventid):
-    """Render details of particular event."""
-    result=Event.query.filter_by(eventid=eventid).first()
-    
-    return render_template('viewEvent.html', result=result) 
-    
-@app.route("/api/events/<eventid>/update", methods=['GET', 'POST'])
+    event = Event.query.filter_by(eventid=eventid).first()
+    if not event:
+        return jsonify({'message':'This event does not exist!'})
+    event_dict = dict()
+    event_dict['eventid'] = event.eventid
+    event_dict['name'] = event.name
+    event_dict['title'] = event.title 
+    event_dict['category'] = event.category
+    event_dict['start_date'] = event.start_date
+    event_dict['end_date'] = event.end_date
+    event_dict['description'] = event.description
+    event_dict['venue'] = event.venue
+    event_dict['flyer'] = event.flyer
+
+    return jsonify({'message':'Event shown!'})
+
+@app.route("/api/events/<eventid>", methods=['PUT'])
 def updateEventInfo(eventid): 
     record = Event.query.filter_by(eventid=eventid).first()
-    form = EventForm(request.form, obj=record)
+    #form = EventForm(request.form, obj=record)
+    name =  request.json['name'] 
+    title = request.json['title']
+    category = request.json['category']
+    start_date = request.json['start_date']
+    end_date = request.json['end_date']
+    description = request.json['description']
+    venue = request.json['venue']
+    flyer = request.json['flyer']
+
+    record.name = name
+    record.title = title
+    record.category = category
+    record.start_date = start_date
+    record.end_date = end_date
+    record.description = description
+    record.venue = venue
+    record.flyer = flyer
+
+    db.session.commit()
+    return jsonify({'message':'Event data was changed'})
     
-    if request.method == "POST" and form.validate_on_submit():
-        form.populate_obj(record)
-            
-        db.session.commit()
-        flash('Event {} Updated!'.format(record.eventid), 'success')
-        return redirect(url_for("home"))
-    
-    flash_errors(form)
-    return render_template('updateEvent.html', form=form, record=record)
+
+# endpoint to update user
+@app.route("/user/<id>", methods=["PUT"])
+def user_update(id):
+    user = User.query.get(id)
+    username = request.json['username']
+    email = request.json['email']
+
+    user.email = email
+    user.username = username
+
+    db.session.commit()
+    return user_schema.jsonify(user)
 
 @app.route('/api/events/<eventid>/delete', methods=['DELETE'])
 def deleteEvent(eventid):
@@ -118,6 +162,12 @@ def deleteEvent(eventid):
     db.session.commit()
     
     return jsonify({'message':'Event was deleted'})
+
+# endpoint to get user detail by id
+@app.route("/api/events/search", methods=["GET"])
+def searchForEvent(id):
+    user = User.query.get(id)
+    return user_schema.jsonify(user
 
 # user_loader callback. This callback is used to reload the user object from
 # the user ID stored in the session
