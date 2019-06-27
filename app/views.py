@@ -69,7 +69,7 @@ def login():
 def register():
     data = request.get_json()
     pword_hashed = generate_password_hash(data['password'],method='sha256')
-    new_user = EventManager(public_id=data['public_id']first_name=data['first_name'], last_name=data['last_name'], email=data['email'],
+    new_user = EventManager(first_name=data['first_name'], last_name=data['last_name'], email=data['email'],
     telnum=data['telnum'] ,username=data['username'], password=pword_hashed, admin=False)
 
     db.session.add(new_user)
@@ -78,28 +78,25 @@ def register():
     return jsonify({'message': 'The Event Manager user was created'})
 
 # how to post image in postman: https://stackoverflow.com/questions/39660074/post-image-data-using-postman
-@app.route("/api/events/createEvent",  methods=["POST"])
 #@token_required
+@app.route("/api/events/createEvent",  methods=["POST"])
 def createNewEvent():
+    # Getting 404 not found for some reason
     #date_created = datetime.datetime.now().strftime("%B %d, %Y")
     data = request.get_json()
-    print(data)
-    imagefile = request.files.get('imagefile', '')
-    print(imagefile)
-    #imagefile.save('C:/Users/Real/Desktop/ems-starter/app/static/images')
-    #filename = secure_filename(imagefile.filename)
-    #imagefile.save(os.path.join("./app",app.config['UPLOAD_FOLDER'], filename))
-    #imagefile.save('C:\Users\Real\Desktop\ems-starter\app\static\' + imagefile)
-
+    #print(data)
+    #imagefile = request.files.get('imagefile', '')
+    #print(imagefile)
+    #print(data)
     new_event = Event(name=data['name'], title=data['title'], category=data['category'], start_date=data['start_date'] ,
-    end_date=data['end_date'] ,description=data['description'], cost=data['cost'],venue=data['venue'], flyer=imagefile)
+    end_date=data['end_date'] ,description=data['description'], cost=data['cost'],venue=data['venue'], flyer=data['flyer'],
+    managerid=data['managerid'], public=False)
     # The picture thingy with Flyer not working
     db.session.add(new_event)
     db.session.commit()
 
     return jsonify({'message': 'Event was created'})
 
-# Should but not tested
 @app.route('/api/events/<eventID>/public', methods=['PUT'])
 #@token_required
 def makeEventPublic(eventid):
@@ -165,11 +162,26 @@ def deleteEvent(eventid):
 
     return jsonify({'message':'Event was deleted'})
 
-# endpoint to get user detail by id
-@app.route("/api/events/search", methods=["GET"])
-def searchForEvent(id):
-    user = User.query.get(id)
-    return user_schema.jsonify(user)
+# endpoint to get event detail by name
+@app.route("/api/events/search/<eventname>", methods=["GET"])
+def searchForEvent(name):
+    events = Event.query.filter_by(name=eventname)
+    event_list = []
+    for event in events:
+        event_dict = dict()
+        event_dict['eventid'] = event.eventid
+        event_dict['event_publicId'] = event.event_publicId
+        event_dict['name'] = event.name
+        event_dict['title'] = event.title 
+        event_dict['category'] = event.category
+        event_dict['start_date'] = event.start_date
+        event_dict['end_date'] = event.end_date
+        event_dict['description'] = event.description
+        event_dict['venue'] = event.venue
+        event_dict['flyer'] = event.flyer
+        #event_dict['managerid'] = event.managerid
+    return jsonify({'events': event_list}), 200
+    
 
 @app.route("/api/events/<eventid>/comment",methods="POST")
 def commentOnEvent(eventid):
