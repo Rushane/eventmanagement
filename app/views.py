@@ -139,17 +139,33 @@ def deleteEvent(eventid):
 @app.route("/api/events/<eventid>/comment",methods="POST")
 def commentOnEvent(eventid):
     """ comment on  events"""
+    data = request.get_json()
     eventrecord =  Event.query.filter_by(eventid=eventid).first()
     if not eventrecord:
         return jsonify({'message':'This event does not exist!'})
     else:
-        comment= Comment(comment_publicId=eventrecord['comment_publicId'],eventid=eventid,guestid=eventrecord['guestid'],comment=eventrecord['comment'])
+        comment= Comment(comment_publicId=str(uuid.uuid4()),eventid=eventid,guestid=data['guestid'],comment=data['comment'])
         db.session.add(comment)
         db.session.commit()
-        return jsonify({'message': 'comment added to Event'})
+        return jsonify({'message': 'comment was added to Event'})
 
-#@app.route("")
-
+@app.route("/api/events/<eventid>/rate",methods="POST")
+def rateEvent(eventid):
+    """ rating an events"""
+    eventrecord =  Event.query.filter_by(eventid=eventid).first()
+    if not eventrecord:
+        return jsonify({'message':'This event does not exist!'})
+    else:
+        raterecord = Rating.query.filter_by(eventid=eventid).first()
+        rate=""
+        if raterecord != None:
+            oldrate=raterecord.rate_value
+            rate= Rating(rating_publicId=data["rating_publicId"], eventid=eventid, rate_value= (old+data['rate_value'])/2)
+        else:
+            rate= Rating(rating_publicId=data["rating_publicId"], eventid=eventid, rate_value= data['rate_value'])
+        db.session.add(rate)
+        db.session.commit()
+        return jsonify({'message': 'rating was added to Event'})
 
 
 
