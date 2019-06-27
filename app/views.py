@@ -65,6 +65,13 @@ def login():
     return make_response("Authentication not verified",401,{"WWW-Authenticate":'Basic realm="Login Requried!"'})
     pass
 
+# def admin_login_required():
+#     def wrap(*args, **kwargs):
+#         # user is available from @login_required
+#         if not g.user.is_admin:
+#             return "you need to be admin", 401
+# return f(*args, **kwargs)
+
 @app.route("/api/users/register",  methods=["POST"])
 def register():
     data = request.get_json()
@@ -87,7 +94,7 @@ def createNewEvent():
     #print(data)
     #imagefile = request.files.get('imagefile', '')
     #print(imagefile)
-    #print(data)
+    print(data)
     new_event = Event(name=data['name'], title=data['title'], category=data['category'], start_date=data['start_date'] ,
     end_date=data['end_date'] ,description=data['description'], cost=data['cost'],venue=data['venue'], flyer=data['flyer'],
     managerid=data['managerid'], public=False)
@@ -181,6 +188,26 @@ def searchForEvent(name):
         event_dict['flyer'] = event.flyer
         #event_dict['managerid'] = event.managerid
     return jsonify({'events': event_list}), 200
+
+@app.route("/api/events/getAllEvents", methods="GET")
+def getAllEvents():
+    events = Event.query.all()
+    event_list = []
+    for event in events:
+        event_dict = dict()
+        event_dict['eventid'] = event.eventid
+        event_dict['event_publicId'] = event.event_publicId
+        event_dict['name'] = event.name
+        event_dict['title'] = event.title 
+        event_dict['category'] = event.category
+        event_dict['start_date'] = event.start_date
+        event_dict['end_date'] = event.end_date
+        event_dict['description'] = event.description
+        event_dict['venue'] = event.venue
+        event_dict['flyer'] = event.flyer
+        #event_dict['managerid'] = event.managerid
+    return jsonify({'events': event_list})
+
     
 
 @app.route("/api/events/<eventid>/comment",methods="POST")
