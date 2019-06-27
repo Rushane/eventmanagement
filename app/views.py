@@ -171,7 +171,7 @@ def deleteEvent(eventid):
 
 # endpoint to get event detail by name
 @app.route("/api/events/search/<eventname>", methods=["GET"])
-def searchForEvent(name):
+def searchForEvent(eventname):
     events = Event.query.filter_by(name=eventname)
     event_list = []
     for event in events:

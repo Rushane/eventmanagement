@@ -7,13 +7,11 @@ class Guest(db.Model):
     __tablename__ = 'Guest'
 
     guestid = db.Column(db.Integer, primary_key=True)
-    guest_publicId = db.Column(db.String(50), unique=True)
     email = db.Column(db.String(180))
     displayName = db.Column(db.String(80), unique=True)
 
     def __init__(self, email, displayName):
         self.displayName = displayName
-        self.guest_publicId = str(uuid.uuid4())
         self.email = email
 
     def is_authenticated(self):
@@ -31,11 +29,6 @@ class Guest(db.Model):
         except NameError:
             return str(self.guestid)  # python 3 support
 
-    def get_publicId(self):
-        try:
-            return unicode(self.guest_publicId)  # python 2 support
-        except NameError:
-            return str(self.guest_publicId)  # python 3 support
 
 class EventManager(db.Model):
 
@@ -136,13 +129,11 @@ class Comment(db.Model):
     __tablename__ = 'Comment'
 
     commentid = db.Column(db.Integer,primary_key=True)
-    comment_publicId = db.Column(db.String(50), unique=True)
     eventid = db.Column(db.Integer, db.ForeignKey ('Event.eventid'))
     guestid = db.Column(db.Integer, db.ForeignKey ('Guest.guestid'))
     comment = db.Column(db.String(50))
 
     def __init__(self, eventid, guestid, comment):
-        self.comment_publicId = str(uuid.uuid4())
         self.eventid = eventid
         self.guestid = guestid
         self.comment = comment
@@ -153,11 +144,7 @@ class Comment(db.Model):
         except NameError:
             return str(self.commentid)  # python 3 support
 
-    def get_commentPublicId(self):
-        try:
-            return unicode(self.comment_publicId)  # python 2 support
-        except NameError:
-            return str(self.comment_publicId)  # python 3 support
+    
 
 
 class Rating(db.Model):
@@ -165,12 +152,10 @@ class Rating(db.Model):
     __tablename__ = 'Rating'
 
     rateid = db.Column(db.Integer,primary_key=True)
-    rating_publicId = db.Column(db.String(50), unique=True)
     eventid = db.Column(db.Integer, db.ForeignKey ('Event.eventid'))
     rate_value = db.Column(db.Integer)
 
     def __init__(self, eventid, rate_value):
-        self.rating_publicId = str(uuid.uuid4())
         self.eventid = eventid
         self.rate_value = rate_value
 
@@ -180,8 +165,4 @@ class Rating(db.Model):
         except NameError:
             return str(self.rateid)  # python 3 support
 
-    def get_ratingPublicId(self):
-        try:
-            return unicode(self.rating_publicId)  # python 2 support
-        except NameError:
-            return str(self.rating_publicId)  # python 3 support
+    
