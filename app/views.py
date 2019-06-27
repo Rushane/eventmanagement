@@ -73,7 +73,6 @@ def register():
         return jsonify({'message': 'A new Event Manager user was created'})
     return render_template('register.html',form=form)
 
-# how to post image in postman: https://stackoverflow.com/questions/39660074/post-image-data-using-postman
 @app.route("/api/events/createEvent",  methods=["POST"])
 #@token_required
 def createNewEvent():

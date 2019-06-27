@@ -144,7 +144,7 @@ class Comment(db.Model):
         except NameError:
             return str(self.commentid)  # python 3 support
 
-    
+
 
 
 class Rating(db.Model):
@@ -164,5 +164,3 @@ class Rating(db.Model):
             return unicode(self.rateid)  # python 2 support
         except NameError:
             return str(self.rateid)  # python 3 support
-
-    
