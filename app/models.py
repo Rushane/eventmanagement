@@ -1,4 +1,4 @@
-from app import db
+from runapp import db
 import uuid
 from werkzeug.security import generate_password_hash
 
