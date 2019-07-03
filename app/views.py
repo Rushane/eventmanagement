@@ -33,6 +33,7 @@ def token_required(f):
             data =jwt.decode(token,app.config['SECRET_KEY'])
             current_user=EventManager.query.filter_by(manager_publicId=data['manager_publicId']).first()
         except Exception as e:
+            print(e)
             return jsonify({'message':'Not a valid token!'}),401
         return f(current_user,*args,**kwargs)
     return decorated
@@ -48,21 +49,21 @@ def about():
     """Render the website's about page."""
     return render_template('about.html')
 
-@app.route("/login", methods=["GET", "POST"])
+@app.route('/login')
 def login():
     auth = request.authorization
     if not auth or not auth.username or not auth.password:
-        return make_response("Authentication not verified",401,{"WWW-Authenticate":'Basic realm="Login Requried!"'})
+        return make_response('Authentication not verified',401,{'WWW-Authenticate':'Basic realm="Login Requried!"'})
     user = EventManager.query.filter_by(username=auth.username).first()
     if not user:
-        return make_response("Authentication not verified",401,{"WWW-Authenticate":'Basic realm="Login Requried!"'})
+        return make_response('Authentication not verified',401,{'WWW-Authenticate':'Basic realm="Login Requried!"'})
     if check_password_hash(user.password,auth.password):
-        token = jwt.encode({'public_id':user.manager_publicId,'exp':datetime.datetime.utcnow()+datetime.timedelta(minutes=30)},app.config["SECRET_KEY"])
+        token = jwt.encode({'manager_publicId':user.manager_publicId,'exp':datetime.datetime.utcnow()+datetime.timedelta(minutes=30)},app.config['SECRET_KEY'])
         return jsonify({'token':token.decode('UTF-8')})
-    return make_response("Authentication not verified",401,{"WWW-Authenticate":'Basic realm="Login Requried!"'})
+    return make_response('Authentication not verified',401,{'WWW-Authenticate':'Basic realm="Login Requried!"'})
 
 @app.route("/api/users/register", methods=["GET","POST"])
-def register():
+def register(current_user):
     form=RegistrationForm()
     if request.method == 'POST' :#and form.validate_on_submit():
         data = request.get_json()
@@ -74,8 +75,8 @@ def register():
     return render_template('register.html',form=form)
 
 @app.route("/api/events/createEvent",  methods=["POST"])
-#@token_required
-def createNewEvent():
+@token_required
+def createNewEvent(current_user):
     data =request.form
     files = request.files['flyer']
     photo=files
