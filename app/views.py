@@ -31,11 +31,12 @@ def token_required(f):
         if not token:
             return jsonify({'message':'Token is not present!'})
         try:
-            data =jwt.decode(token,app.config['SECRET_KEY'])
+            data =jwt.decode(token, app.config['SECRET_KEY'])
             print(data)
             current_user=EventManager.query.filter_by(manager_publicId=data['manager_publicId']).first()
             print(current_user)
         except Exception as e:
+            print(e)
             return jsonify({'message':'Not a valid token!'}),401
         return f(current_user,*args,**kwargs)
     return decorated
@@ -60,11 +61,11 @@ def login():
     if not user:
         return make_response("Authentication not verified",401,{"WWW-Authenticate":'Basic realm="Login Requried!"'})
     if check_password_hash(user.password,auth.password):
-        token = jwt.encode({'public_id':user.manager_publicId,'exp':datetime.datetime.utcnow()+datetime.timedelta(minutes=30)},app.config["SECRET_KEY"])
+        token = jwt.encode({'manager_publicId':user.manager_publicId,'exp':datetime.datetime.utcnow()+datetime.timedelta(minutes=30)},app.config["SECRET_KEY"])
         return jsonify({'token':token.decode('UTF-8')})
     return make_response("Authentication not verified",401,{"WWW-Authenticate":'Basic realm="Login Requried!"'})
 
-@app.route("/api/users/register", methods=["GET","POST"])
+@app.route("/api/users/register", methods=["POST"])
 def register():
     form=RegistrationForm()
     if request.method == 'POST' :#and form.validate_on_submit():
@@ -77,7 +78,7 @@ def register():
     return render_template('register.html',form=form)
 
 @app.route("/api/events/createEvent",  methods=["POST"])
-#@token_required
+@token_required
 def createNewEvent(current_user):
     data =request.form
     files = request.files['flyer']
@@ -124,6 +125,7 @@ def viewEventInfo(event_publicId):
         return jsonify({'message':event_dict})
 
 @app.route("/api/events/<event_publicId>", methods=['PUT'])
+#@token_required
 def updateEventInfo(event_publicId):
     record = Event.query.filter_by(event_publicId=event_publicId).first()
     if record is None:
@@ -194,6 +196,7 @@ def searchForEvent(eventname):
             event_dict['managerid'] = event.managerid
             event_list.append(event_dict)
         return jsonify({'events': event_list})
+
 @app.route("/api/events/getAllEvents", methods=["GET"])
 def getAllEvents():
     events = Event.query.all()
@@ -216,33 +219,33 @@ def getAllEvents():
         event_list.append(event_dict)
     return jsonify({'events': event_list})
 
-@app.route("/api/events/<eventid>/comment",methods=["POST"])
-def commentOnEvent(eventid):
+@app.route("/api/events/<event_publicId>/comment",methods=["POST"])
+def commentOnEvent( event_publicId):
     """ comment on  events"""
     data = request.get_json()
-    eventrecord =  Event.query.filter_by(eventid=eventid).first()
+    eventrecord =  Event.query.filter_by( event_publicId= event_publicId).first()
     if not eventrecord:
         return jsonify({'message':'This event does not exist!'})
     else:
-        comment= Comment(public_id=str(uuid.uuid4()),eventid=int(eventid),guestid=data['guestid'],comment=data['comment'])
+        comment= Comment(eventid=eventrecord.eventid,guestid=data['guestid'],comment=data['comment'])
         db.session.add(comment)
         db.session.commit()
         return jsonify({'message': 'comment was added to Event'})
 
-@app.route("/api/events/<eventid>/rate",methods=["POST","PUT"])
-def rateEvent(eventid):
+@app.route("/api/events/<event_publicId>/rate",methods=["POST","Pevent_publicIdUT"])
+def rateEvent(event_publicId):
     """ rating an events"""
     data = request.get_json()
-    eventrecord =  Event.query.filter_by(eventid=eventid).first()
+    eventrecord =  Event.query.filter_by(event_publicId=event_publicId).first()
     if not eventrecord:
         return jsonify({'message':'This event does not exist!'})
     else:
-        raterecord = Rating.query.filter_by(eventid=eventid).first()
+        raterecord = Rating.query.filter_by(eventid=eventrecord.eventid).first()
         if raterecord != None:
             oldrate=raterecord.rate_value
             raterecord.rate_value=(oldrate+data['rate_value'])/2
         else:
-            rate= Rating(eventid=eventid, rate_value= data['rate_value'])
+            rate= Rating(eventrecord.eventid, rate_value= data['rate_value'])
             db.session.add(rate)
         db.session.commit()
         return jsonify({'message': 'rating was added to Event'})
