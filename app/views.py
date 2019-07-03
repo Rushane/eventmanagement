@@ -25,13 +25,16 @@ def token_required(f):
     @wraps(f)
     def decorated(*args,**kwargs):
         token=None
-        if 'x-access-token' in request.headers:
-            token=request.headers['x-access-token']
+        print(request.headers)
+        if 'X-Access-Token' in request.headers:
+            token=request.headers['X-Access-Token']
         if not token:
             return jsonify({'message':'Token is not present!'})
         try:
             data =jwt.decode(token,app.config['SECRET_KEY'])
+            print(data)
             current_user=EventManager.query.filter_by(manager_publicId=data['manager_publicId']).first()
+            print(current_user)
         except Exception as e:
             print(e)
             return jsonify({'message':'Not a valid token!'}),401
@@ -49,7 +52,11 @@ def about():
     """Render the website's about page."""
     return render_template('about.html')
 
+<<<<<<< HEAD
 @app.route('/login')
+=======
+@app.route("/login", methods=["GET"])
+>>>>>>> d2e9bbccefdc873a1efb2421c720f72a6665320c
 def login():
     auth = request.authorization
     if not auth or not auth.username or not auth.password:
@@ -83,7 +90,7 @@ def createNewEvent(current_user):
     filename= secure_filename(photo.filename)
     photo.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
     new_event = Event(name=data['name'], title=data['title'], category=data['category'], start_date=datetime.datetime.strptime(data['start_date'],"%Y/%m/%d"),
-    end_date=datetime.datetime.strptime(data['end_date'],"%Y/%m/%d") ,description=data['description'], cost=data['cost'],venue=data['venue'], flyer=filename, managerid=data['managerid'])
+    end_date=datetime.datetime.strptime(data['end_date'],"%Y/%m/%d") ,description=data['description'], cost=data['cost'],venue=data['venue'], flyer=filename, managerid=data['managerid'],public=False)
 
     db.session.add(new_event)
     db.session.commit()
@@ -92,8 +99,8 @@ def createNewEvent(current_user):
 
 # Should but not tested
 @app.route('/api/events/<event_publicId>/public', methods=['PUT'])
-#@token_required
-def makeEventPublic(event_publicId):
+@token_required
+def makeEventPublic(current_user,event_publicId):
     record = Event.query.filter_by(event_publicId=event_publicId).first()
     if record is None:
         return jsonify({'message':'No events exist!'})
